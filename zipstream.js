@@ -179,10 +179,13 @@ ZipStream.prototype.addFile = function(source, file, callback) {
       // Assume stream
       source.on('data', function(chunk) {
         update(chunk);
-        deflate.write(chunk); //TODO check for false & wait for drain
+        if(!deflate.write(chunk)) source.pause();
       });
       source.on('end', function() {
         deflate.end();
+      });
+      deflate.on('drain',function(){
+        source.resume();
       });
     }
   }
@@ -220,7 +223,7 @@ ZipStream.prototype._pushLocalFileHeader = function(file) {
   len = buf.write(file.name, 30);           // file name
   buf.writeUInt16LE(len, 26);               // file name length
 
-  len += 30; 
+  len += 30;
   self.queue.push(buf.slice(0, len));
   self.fileptr += len;
 }
